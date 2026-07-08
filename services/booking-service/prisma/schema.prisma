@@ -4,13 +4,15 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
 
 model Booking {
   id                 Int       @id @default(autoincrement())
@@ -20,5 +22,5 @@ model Booking {
   agenda             String
   paymentStatus      String    @default("pending")
   createdAt          DateTime  @default(now())
-  
+
 }
