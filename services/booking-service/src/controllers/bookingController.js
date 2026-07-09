@@ -85,42 +85,60 @@ const createCheckoutSession =
     }
   };
 
-const stripeWebhook = async (req, res) =>{
+const stripeWebhook = async (req, res) => {
+  console.log("WEBHOOK HIT");
 
-    const sig = req.headers["stripe-signature"];
+  const sig = req.headers["stripe-signature"];
 
-    let event;
+  try {
+    const event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
 
-    try{
-        event = stripe.webhooks.constructEvent(
-            req.body,
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
-    } catch (err){
-        return res.status(400).send( `Webhook Error: ${err.message}`);
+    console.log("EVENT TYPE:", event.type);
+
+    if (event.type === "checkout.session.completed") {
+      console.log("PAYMENT SUCCESS");
+
+      const session = event.data.object;
+
+      console.log(session.metadata);
+
+      const bookingId = Number(
+        session.metadata.bookingId
+      );
+
+      await prisma.booking.update({
+        where: {
+          id: bookingId,
+        },
+        data: {
+          paymentStatus: "paid",
+        },
+      });
+
+      console.log(
+        `Booking ${bookingId} marked as paid`
+      );
     }
 
-    if(event.type === "checkout.session.completed"){
+    return res.status(200).json({
+      received: true,
+    });
 
-        const session = event.data.object;
+  } catch (err) {
+    console.error(
+      "WEBHOOK ERROR:",
+      err.message
+    );
 
-        const bookingId = session.metadata.bookingId;
-
-        await prisma.booking.update({
-            where: {
-                id: Number(bookingId),
-            },
-            data:{
-                paymentStatus: "paid",
-            },
-        });
-
-        console.log("Payment successful");
-    }
-
-    res.json({ received: true, });
-}
+    return res.status(400).send(
+      `Webhook Error: ${err.message}`
+    );
+  }
+};
 
 
   module.exports = {
