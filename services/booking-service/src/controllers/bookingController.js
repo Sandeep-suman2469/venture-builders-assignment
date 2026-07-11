@@ -4,6 +4,8 @@ const stripe = require("../config/stripe");
 
 const createCalendarEvent = require("../utils/createCalenderEvent");
 
+const sendBookingEmail = require("../utils/sendBookingEmail");
+
 const createBooking = async (req, res) => {
   try {
     const { name, email, phone, agenda } = req.body;
@@ -114,6 +116,10 @@ const stripeWebhook = async (req, res) => {
       await createCalendarEvent(booking);
 
       console.log("Calendar event created");
+
+      await sendBookingEmail(booking);
+
+      console.log("Confirmation email sent");
     }
 
     return res.status(200).json({
